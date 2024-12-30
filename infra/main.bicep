@@ -36,7 +36,7 @@ param principalId string = ''
 param openAILocation string
 
 @description('Name of the OpenAI resource group. If not specified, the resource group name will be generated.')
-param openAIResourceGroupName string = existingResourceGroupName
+param openAIResourceGroupName string = ''
 
 @description('Whether to deploy Azure OpenAI resources')
 param deployAzureOpenAI bool = true
@@ -71,7 +71,6 @@ var chatConfig = {
   deploymentCapacity: chatDeploymentCapacity != 0 ? chatDeploymentCapacity : 30
 }
 
-
 param embedModelName string = ''
 param embedDeploymentName string = ''
 param embedDeploymentVersion string = ''
@@ -97,7 +96,6 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing 
   name: existingResourceGroupName
 }
 
-// PostgreSQL Server
 var postgresServerName = '${prefix}-postgresql'
 var postgresDatabaseName = 'postgres'
 var postgresEntraAdministratorObjectId = principalId
@@ -106,7 +104,7 @@ var postgresEntraAdministratorName = 'admin${uniqueString(resourceGroup.id, prin
 
 module postgresServer 'core/database/postgresql/flexibleserver.bicep' = {
   name: 'postgresql'
-  scope: existingResourceGroup
+  scope: resourceGroup
   params: {
     name: postgresServerName
     location: location
@@ -131,7 +129,7 @@ module postgresServer 'core/database/postgresql/flexibleserver.bicep' = {
 // Monitor application with Azure Monitor
 module monitoring 'core/monitor/monitoring.bicep' = {
   name: 'monitoring'
-  scope: existingResourceGroup
+  scope: resourceGroup
   params: {
     location: location
     tags: tags
@@ -144,7 +142,7 @@ module monitoring 'core/monitor/monitoring.bicep' = {
 // Container apps host (including container registry)
 module containerApps 'core/host/container-apps.bicep' = {
   name: 'container-apps'
-  scope: existingResourceGroup
+  scope: resourceGroup
   params: {
     name: 'app'
     location: location
@@ -244,7 +242,7 @@ var secrets = !empty(azureOpenAIKey) ? {
 
 module web 'web.bicep' = {
   name: 'web'
-  scope: existingResourceGroup
+  scope: resourceGroup
   params: {
     name: webAppName
     location: location
@@ -258,10 +256,14 @@ module web 'web.bicep' = {
   }
 }
 
+resource openAIResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing =
+  if (!empty(openAIResourceGroupName)) {
+    name: !empty(openAIResourceGroupName) ? openAIResourceGroupName : resourceGroup.name
+  }
 
 module openAI 'core/ai/cognitiveservices.bicep' = if (deployAzureOpenAI) {
   name: 'openai'
-  scope: existingResourceGroup
+  scope: openAIResourceGroup
   params: {
     name: '${prefix}-openai'
     location: openAILocation
@@ -302,7 +304,7 @@ module openAI 'core/ai/cognitiveservices.bicep' = if (deployAzureOpenAI) {
 // USER ROLES
 module openAIRoleUser 'core/security/role.bicep' =
   if (empty(runningOnGh)) {
-    scope: existingResourceGroup
+    scope: openAIResourceGroup
     name: 'openai-role-user'
     params: {
       principalId: principalId
@@ -313,7 +315,7 @@ module openAIRoleUser 'core/security/role.bicep' =
 
 // Backend roles
 module openAIRoleBackend 'core/security/role.bicep' = {
-  scope: existingResourceGroup
+  scope: openAIResourceGroup
   name: 'openai-role-backend'
   params: {
     principalId: web.outputs.SERVICE_WEB_IDENTITY_PRINCIPAL_ID
