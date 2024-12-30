@@ -9,6 +9,9 @@ param name string
 @description('Primary location for all resources')
 param location string
 
+@description('Name of the existing resource group')
+param existingResourceGroupName string
+
 @description('Whether the deployment is running on GitHub Actions')
 param runningOnGh string = ''
 
