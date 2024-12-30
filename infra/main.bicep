@@ -70,6 +70,11 @@ var chatConfig = {
   deploymentCapacity: chatDeploymentCapacity != 0 ? chatDeploymentCapacity : 30
 }
 
+// Reference the existing resource group
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+  name: existingResourceGroupName
+}
+
 param embedModelName string = ''
 param embedDeploymentName string = ''
 param embedDeploymentVersion string = ''
