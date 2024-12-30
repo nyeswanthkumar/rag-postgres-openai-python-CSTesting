@@ -35,7 +35,7 @@ param principalId string = ''
 param openAILocation string
 
 @description('Name of the OpenAI resource group. If not specified, the resource group name will be generated.')
-param openAIResourceGroupName string = ''
+param openAIResourceGroupName string = existingResourceGroupName
 
 @description('Whether to deploy Azure OpenAI resources')
 param deployAzureOpenAI bool = true
