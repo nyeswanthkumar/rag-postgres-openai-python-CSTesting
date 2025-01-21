@@ -1,0 +1,48 @@
+name: Trigger auto deployment for ragpgpy1-rn5pyrt7ct-ca
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/ragpgpy1-rn5pyrt7ct-ca-AutoDeployTrigger-470b45d2-75dc-4f4f-bf14-dde901b82711.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.RAGPGPY1RN5PYRT7CTCA_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.RAGPGPY1RN5PYRT7CTCA_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.RAGPGPY1RN5PYRT7CTCA_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: ragpgpy1rn5pyrt7ctpmaregistry.azurecr.io
+          registryUsername: ${{ secrets.RAGPGPY1RN5PYRT7CTCA_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.RAGPGPY1RN5PYRT7CTCA_REGISTRY_PASSWORD }}
+          containerAppName: ragpgpy1-rn5pyrt7ct-ca
+          resourceGroup: ResourceGroup1
+          imageToBuild: ragpgpy1rn5pyrt7ctpmaregistry.azurecr.io/ragpgpy1-rn5pyrt7ct-ca:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
